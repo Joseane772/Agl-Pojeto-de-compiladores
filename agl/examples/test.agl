@@ -1,0 +1,7 @@
+view : View with {
+    width = 601;
+    height = 601;
+    title = " Illustrating the minimum level graphical models ";
+    background = "alice blue";
+}
+#( This is a block, possible multiline, comment #)
