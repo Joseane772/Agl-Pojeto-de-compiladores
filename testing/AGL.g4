@@ -1,98 +1,128 @@
 grammar AGL;
 
-// Regras principais
-program: (comment| statement)*;
+// Entry rule
+program: (comment | statement)* EOF;
 
-statement: viewDeclaration NEWLINE?
-            | objectDeclaration NEWLINE?
-            | varDeclaration NEWLINE?
-            | assignment NEWLINE?
-            | print NEWLINE?
-            | viewAction NEWLINE?
-            | action NEWLINE?
-            | NEWLINE
-            ;
+statement
+        : viewDeclaration NEWLINE?
+        | objectDeclaration NEWLINE?
+        | objectAssignment NEWLINE?
+        | varDeclaration NEWLINE?
+        | varPropertyAssignment NEWLINE?
+        | withBlock NEWLINE?
+        | assignment NEWLINE?
+        | print NEWLINE?
+        | action NEWLINE?
+        | forLoop NEWLINE?
+        | comment NEWLINE?
+        | NEWLINE
+        ;
 
-varDeclaration: ID ':' type ('=' expr)? ';';
+
+withBlock: 'with' (ID 'do')? '{' NEWLINE* statement* NEWLINE* '}';
+
+// Variables
+varDeclaration: ID ':' type (('=' expr)? | ('=' command))';';
+
+varPropertyAssignment: ID '.' ID '=' expr ';';
+
+command
+    : 'wait' commandCondition;
+
+commandCondition
+    : 'mouse' 'click'
+    | 'key' 'press' STRING
+    | 'time' 'pass' NUMBER ('s' | 'ms')
+    ;
 
 
+// Models
+objectAssignment: ID ':' objectDeclaration;
 
-// models
-objectDeclaration: objectType 'at' point 'with' '{' NEWLINE* (objectProperty)* NEWLINE*'}';
+objectDeclaration: objectType 'at' expr withBlock;
 
 objectProperty
-    : 'fill' '=' expr ';'
-    | 'lenft' '=' expr ';'
-    | 'start' '=' expr ';'
-    | 'extent' '=' expr ';'
-    | 'outline' '=' expr ';'
-    ;
+            : 'fill' '=' expr ';'
+            | 'length' '=' expr ';'
+            | 'start' '=' expr ';'
+            | 'extent' '=' expr ';'
+            | 'outline' '=' expr ';'
+            | 'text' '=' expr ';'
+            ;
 
+// Object types
 objectType
-    : 'Line'
-    | 'Rectangle'
-    | 'Ellipse'
-    | 'Arc'
-    | 'ArcChord'
-    | 'PieSlice'
-    | 'Text'
-    | 'Dot'
-    ;
-// views
-viewDeclaration: ID ':' 'View' 'with' '{' NEWLINE* (viewProperty)* NEWLINE*'}';
+        : 'Line'
+        | 'Rectangle'
+        | 'Ellipse'
+        | 'Arc'
+        | 'ArcChord'
+        | 'PieSlice'
+        | 'Text'
+        | 'Dot'
+        ;
 
-viewProperty: 'Ox' '=' expr ';'
+// Views
+viewDeclaration: ID ':' 'View' 'with' '{' NEWLINE* viewProperty* NEWLINE* '}';
+
+viewProperty
+            : 'Ox' '=' expr ';'
             | 'Oy' '=' expr ';'
             | 'width' '=' expr ';'
             | 'height' '=' expr ';'
             | 'title' '=' expr ';'
-            | 'background' '=' expr ';';
+            | 'background' '=' expr ';'
+            ;
 
-// views actions
-viewAction
+
+// Print
+print: 'print' expr ';';
+
+// Assignment
+assignment: ID '=' expr ';';
+
+// Actions
+action
     : 'refresh' ID ';'
     | 'close' ID ';'
+    | 'move' ID 'by' point ';'
+    | 'refresh' ID 'after' NUMBER ('s' | 'ms') ';'
+    | 'wait' 'mouse' 'click'
     ;
 
+// For loop
+forLoop: 'for' ID 'in' range 'do' '{' NEWLINE* statement* NEWLINE* '}';
 
-// print
-print: 'print'  expr ;
+range: NUMBER '..' NUMBER ('..' NUMBER)?;
 
-assignment: ID '=' expr;
+// Comments
+comment
+    : LINE_COMMENT
+    | BLOCK_COMMENT;
 
-
-
-action: 'move' '(' point ')'
-        | 'refresh'
-        | 'close';
-
-comment: BLOCK_COMMENT ;
-
-// Tipos de dados e expressões
+// Types and expressions
 type: 'Integer'
     | 'Number'
     | 'Point'
     | 'Vector'
     | 'String'
-    | 'Time';
+    | 'Time'
+    ;
 
-expr
-    : STRING
+expr: STRING
     | NUMBER
     | ID
-    | point;
+    | point
+    | command
+    ;
 
-point: '('(NUMBER|ID) ',' (NUMBER|ID) ')';
+point: '(' (NUMBER | ID) ',' (NUMBER | ID) ')';
 
 // Tokens
 ID: [a-zA-Z_][a-zA-Z_0-9]*;
 NUMBER: [0-9]+ ('.' [0-9]+)?;
-STRING: '"'.*?'"';
-LINE_COMMENT: '#' ~( '\r' | '\n' )* -> skip;
-BLOCK_COMMENT: '#('.*? '#)' -> skip;
+STRING: '"' (~["\\\r\n] | '\\' .)* '"';
+LINE_COMMENT: '#' ~[\r\n]* -> skip;
+BLOCK_COMMENT: '#(' .*? ')#' -> skip;
 NEWLINE: [\r\n]+ -> skip;
-WS: [ \t\r\n]+ -> skip;
-
-
-
-
+WS: [ \t]+ -> skip;
